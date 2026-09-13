@@ -7,9 +7,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.edit
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.Random
+import java.util.concurrent.Executors
 
 /**
  * 应用核心状态：词包、启用项、设置、学习进度。
@@ -150,18 +152,18 @@ class AppCore(private val ctx: Context) {
         val known = prefs.getString(K_ENABLED, null)
         if (enabledPackId.isNotBlank() && packs.none { it.manifest.packId == enabledPackId }) {
             enabledPackId = packs.firstOrNull()?.manifest?.packId ?: ""
-            prefs.edit().putString(K_ENABLED, enabledPackId).apply()
+            prefs.edit { putString(K_ENABLED, enabledPackId) }
         } else if (known == null && packs.isNotEmpty()) {
             // 首次运行（从未写过该配置）才自动启用第一个
             enabledPackId = packs.first().manifest.packId
-            prefs.edit().putString(K_ENABLED, enabledPackId).apply()
+            prefs.edit { putString(K_ENABLED, enabledPackId) }
         }
     }
 
     // ================= 词包 =================
     fun enablePack(id: String) {
         enabledPackId = id
-        prefs.edit().putString(K_ENABLED, id).apply()
+        prefs.edit { putString(K_ENABLED, id) }
     }
 
     /**
@@ -183,22 +185,22 @@ class AppCore(private val ctx: Context) {
     // ================= 设置 =================
     fun updateUnitSize(n: Int) {
         unitSize = n
-        prefs.edit().putInt(K_UNIT, n).apply()
+        prefs.edit { putInt(K_UNIT, n) }
     }
 
     fun updateAutoPronounce(b: Boolean) {
         autoPronounce = b
-        prefs.edit().putBoolean(K_AUTO, b).apply()
+        prefs.edit { putBoolean(K_AUTO, b) }
     }
 
     fun updateShowCollocations(b: Boolean) {
         showCollocations = b
-        prefs.edit().putBoolean(K_COLL, b).apply()
+        prefs.edit { putBoolean(K_COLL, b) }
     }
 
     fun updateShowExamples(b: Boolean) {
         showExamples = b
-        prefs.edit().putBoolean(K_EX, b).apply()
+        prefs.edit { putBoolean(K_EX, b) }
     }
 
     // ================= 顺序与打乱 =================
@@ -212,14 +214,14 @@ class AppCore(private val ctx: Context) {
     }
 
     fun setShuffled(packId: String, on: Boolean) {
-        prefs.edit().putLong("seed_$packId", if (on) System.nanoTime() else 0L).apply()
+        prefs.edit { putLong("seed_$packId", if (on) System.nanoTime() else 0L) }
         shuffleState[packId] = on
         orderCache.remove(packId)
         idIndex.remove(packId)
     }
 
     fun reshuffle(packId: String) {
-        prefs.edit().putLong("seed_$packId", System.nanoTime()).apply()
+        prefs.edit { putLong("seed_$packId", System.nanoTime()) }
         shuffleState[packId] = true
         orderCache.remove(packId)
         idIndex.remove(packId)
@@ -304,15 +306,24 @@ class AppCore(private val ctx: Context) {
     fun countOf(packId: String, state: WordState): Int =
         progress.count { it.key.startsWith("$packId|") && it.value == state }
 
-    private var persistJob: Thread? = null
+    /**
+     * 进度落盘：**必须串行**。
+     *
+     * 每次判定都新起一个线程去写，落地顺序就没有保证：旧快照的线程慢一拍，
+     * 就会把新快照覆盖掉，重启后那个词的状态退回上一次。排到同一个单线程上，
+     * 快照按调用顺序落地。序列化也在调用线程做完，进队列的是结果而不是可变状态。
+     */
+    private val persistExec = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "eword-progress").apply { isDaemon = true }
+    }
 
     private fun persistProgress() {
-        val snapshot = progress.mapValues { it.value.ordinal }
-        persistJob = Thread {
-            runCatching {
-                prefs.edit().putString(K_PROGRESS, gson.toJson(snapshot)).apply()
+        val json = gson.toJson(progress.mapValues { it.value.ordinal })
+        runCatching {
+            persistExec.execute {
+                runCatching { prefs.edit { putString(K_PROGRESS, json) } }
             }
-        }.also { it.isDaemon = true; it.start() }
+        }
     }
 
     fun resetPack(packId: String) {
@@ -320,7 +331,7 @@ class AppCore(private val ctx: Context) {
         progress.keys.filter { it.startsWith(prefix) }.forEach { progress.remove(it) }
         memorizePos.keys.filter { it.startsWith(prefix) }.forEach {
             memorizePos.remove(it)
-            prefs.edit().remove("mpos_$it").apply()
+            prefs.edit { remove("mpos_$it") }
         }
         persistProgress()
     }
@@ -330,7 +341,7 @@ class AppCore(private val ctx: Context) {
 
     fun setMemorizeIndex(packId: String, unit: Int, idx: Int) {
         memorizePos["$packId|$unit"] = idx
-        prefs.edit().putInt("mpos_$packId|$unit", idx).apply()
+        prefs.edit { putInt("mpos_$packId|$unit", idx) }
     }
 
     /** 上次学到哪一个词（优先按词定位，避免队列变化导致错位） */
@@ -338,16 +349,16 @@ class AppCore(private val ctx: Context) {
         prefs.getString("mwid_$packId|$unit", "").orEmpty()
 
     fun setMemorizeWordId(packId: String, unit: Int, wordId: String) {
-        prefs.edit().putString("mwid_$packId|$unit", wordId).apply()
+        prefs.edit { putString("mwid_$packId|$unit", wordId) }
     }
 
     /** 清掉某单元的识记进度（学完该单元时调用） */
     fun clearMemorize(packId: String, unit: Int) {
         memorizePos.remove("$packId|$unit")
-        prefs.edit()
-            .remove("mpos_$packId|$unit")
-            .remove("mwid_$packId|$unit")
-            .apply()
+        prefs.edit {
+            remove("mpos_$packId|$unit")
+            remove("mwid_$packId|$unit")
+        }
     }
 
     // ================= 单元列表滚动位置 =================
@@ -355,7 +366,7 @@ class AppCore(private val ctx: Context) {
 
     fun setUnitScrollIndex(packId: String, index: Int) {
         unitScroll[packId] = index
-        prefs.edit().putInt("uscr_$packId", index).apply()
+        prefs.edit { putInt("uscr_$packId", index) }
     }
 
     companion object {

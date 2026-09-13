@@ -71,6 +71,11 @@ class Pronouncer(private val ctx: Context) {
                 start()
             }
         } catch (t: Throwable) {
+            // 播放失败就静默跳过：发音是辅助功能，不该把界面拖崩
+        } finally {
+            // MediaPlayer 在 setDataSource 里已经把 fd 复制了一份，官方文档写明
+            // 「关闭是调用方的责任，而且这次调用一返回就可以关」。不关的话每个词
+            // 漏一个文件描述符，开着自动发音滑一个单元就上百个，只能等 GC 来收。
             runCatching { afd.close() }
         }
     }

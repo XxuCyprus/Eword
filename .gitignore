@@ -28,5 +28,10 @@ captures/
 .DS_Store
 Thumbs.db
 
-# 词包构建脚本与数据源
+# 词包按 Release 单独分发，本体与内置词包目录都不入仓库
+*.ewp
+/app/src/main/assets/packs/
+/app/src/main/assets/audio/
+
+# 本机私有工作目录
 /tools/

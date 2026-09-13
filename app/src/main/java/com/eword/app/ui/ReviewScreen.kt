@@ -188,64 +188,73 @@ fun ReviewScreen(core: AppCore, unit: Int, stage: Int, push: (Screen) -> Unit, p
                 WordHead(w.word, w.phonetic) { core.pronouncer.pronounce(packId, w.id, w.word) }
             }
 
-            if (core.showExamples && w.examples.isNotEmpty()) {
+            // 例句提示区：只在**答案还没铺开**时出现在单词下方。
+            // 答案一铺开，整张卡片就由下面的 WordFullBody 接管（那里例句在单词下方、
+            // 带译文，顺序是单词 → 词义 → 变形 → 形近词 → 近义词 → 搭配 → 例句）。
+            // 这里若继续渲染，同一条例句会在单词上方和下方各出现一次。
+            if (!showMeaning && core.showExamples && w.examples.isNotEmpty()) {
                 Spacer(Modifier.height(28.dp))
                 if (revealed == 0) {
                     Text("想不起来？可以逐条看例句；只是确认一下就点「显示完整答案」",
                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(10.dp))
                 }
-                // 中文只在看过答案之后才补上：逐条展示阶段只给英文，
-                // 否则译文先把词义说破，例句就不成其为提示了。
-                ExampleList(w.examples.take(revealed), showTranslation = showMeaning,
+                // 逐条展示阶段只给英文：译文会先把词义说破，例句就不成其为提示了。
+                ExampleList(w.examples.take(revealed), showTranslation = false,
                             highlight = w.word, known = known,
                             suffix = w.allSenses.any { s ->
                                 val p = s.pos.lowercase()
                                 p.contains("suffix") || p.contains("suf.")
                             })
 
-                if (!showMeaning) {
-                    Spacer(Modifier.height(14.dp))
-                    if (revealed < w.examples.size) {
-                        OutlinedButton(
-                            onClick = { core.setRevealCount(packId, w.id, revealed + 1) },
-                            shape = cardShape()
-                        ) {
-                            Text(if (revealed == 0) "逐条展示例句"
-                            else "下一句（${revealed}/${w.examples.size}）")
-                        }
-                    } else {
-                        // 例句已全部露完，还要看译文才想得起来 —— 这就是靠提示才答上来的。
-                        // 点下去即定案「没记住」，留在本功能区，不许改判。
-                        // 只想核对的人不走这个按钮，他走下面的「显示完整答案」。
-                        OutlinedButton(
-                            onClick = {
-                                // 定案并置「靠提示」标志。温习二的退回温习一，
-                                // 温习一的原地留住，两种情况都留在温习里。
-                                core.setState(packId, w.id, WordState.REVIEW1)
-                                core.setRevealByHints(packId, w.id, true)
-                                core.setRevealFull(packId, w.id, true)
-                            },
-                            shape = cardShape()
-                        ) {
-                            Text("显示例句意思")
-                        }
-                    }
-
-                    // 铺开完整答案。这一步**不代替用户判定** ——
-                    // 核对完仍由用户在「记住了 / 没记住」里自己选。
-                    // 例句翻到底之后也是走这里：翻完例句只是确认有没有记错，不是认输。
-                    Spacer(Modifier.height(10.dp))
-                    Button(
-                        onClick = { core.setRevealFull(packId, w.id, true) },
+                Spacer(Modifier.height(14.dp))
+                if (revealed < w.examples.size) {
+                    OutlinedButton(
+                        onClick = { core.setRevealCount(packId, w.id, revealed + 1) },
                         shape = cardShape()
-                    ) { Text("显示完整答案（核对用）") }
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "只是确认自己有没有记错，展开后仍然由你决定「记住了 / 没记住」",
-                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    ) {
+                        Text(if (revealed == 0) "逐条展示例句"
+                        else "下一句（${revealed}/${w.examples.size}）")
+                    }
+                } else {
+                    // 例句已全部露完，还要看译文才想得起来 —— 这就是靠提示才答上来的。
+                    // 点下去即定案「没记住」，留在本功能区，不许改判。
+                    // 只想核对的人不走这个按钮，他走下面的「显示完整答案」。
+                    OutlinedButton(
+                        onClick = {
+                            // 定案并置「靠提示」标志。温习二的退回温习一，
+                            // 温习一的原地留住，两种情况都留在温习里。
+                            core.setState(packId, w.id, WordState.REVIEW1)
+                            core.setRevealByHints(packId, w.id, true)
+                            core.setRevealFull(packId, w.id, true)
+                        },
+                        shape = cardShape()
+                    ) {
+                        Text("显示例句意思")
+                    }
                 }
+            }
+
+            // 铺开完整答案。这一步**不代替用户判定** ——
+            // 核对完仍由用户在「记住了 / 没记住」里自己选。
+            // 例句翻到底之后也是走这里：翻完例句只是确认有没有记错，不是认输。
+            //
+            // 它**不能**跟着「显示例句」这个显示项一起藏起来：判定按钮要看过释义才亮，
+            // 而这里是看过释义的唯一入口。绑在一起的后果是——关掉「显示例句」的人
+            // 在温习里点不动任何判定按钮，整条流程卡死在这一张卡上。
+            if (!showMeaning && w.examples.isNotEmpty()) {
+                // 上面若没渲染例句提示区（用户关掉了「显示例句」），这里要多留一段间距，
+                // 否则按钮会紧贴在音标下面。
+                Spacer(Modifier.height(if (core.showExamples) 10.dp else 28.dp))
+                Button(
+                    onClick = { core.setRevealFull(packId, w.id, true) },
+                    shape = cardShape()
+                ) { Text("显示完整答案（核对用）") }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "只是确认自己有没有记错，展开后仍然由你决定「记住了 / 没记住」",
+                    fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             if (showMeaning) {
@@ -265,10 +274,14 @@ fun ReviewScreen(core: AppCore, unit: Int, stage: Int, push: (Screen) -> Unit, p
                     fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                // 还没看过答案：说清为什么两个判定按钮都是灰的
+                // 还没看过答案：说清为什么两个判定按钮都是灰的。
+                // 关掉「显示例句」时上方并没有「显示例句意思」这个按钮，文案不能提它。
                 Spacer(Modifier.height(18.dp))
                 Text(
-                    "请先点上方「显示完整答案（核对用）」或「显示例句意思」看过释义，再判断是否记住",
+                    if (core.showExamples && w.examples.isNotEmpty())
+                        "请先点上方「显示完整答案（核对用）」或「显示例句意思」看过释义，再判断是否记住"
+                    else
+                        "请先点上方「显示完整答案（核对用）」看过释义，再判断是否记住",
                     fontSize = 11.sp, color = MaterialTheme.colorScheme.error
                 )
             }

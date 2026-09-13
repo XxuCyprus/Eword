@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 深色模式下的窗口主题：底色与系统栏图标跟着反色，避免深色界面配白底、白图标。 -->
+<!--
+    深色模式下的窗口主题 —— 仍然必须是**浅色**的。
+
+    本应用的界面永远是浅色（ui/Theme.kt 无条件使用 LightColors），窗口底色和系统栏
+    又是透明的，露出来的就是白色的页面。所以夜间不能把系统栏图标反过来：那会得到
+    「白底白图标」，深色模式下状态栏直接看不见。这里显式给成与 values/themes.xml
+    一致的浅色窗口，顺带把 Compose 接管之前那一帧也钉成白色。
+-->
 <resources>
-    <style name="Theme.Eword" parent="@android:style/Theme.Material.NoActionBar">
+    <style name="Theme.Eword" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@android:color/white</item>
     </style>
 </resources>
