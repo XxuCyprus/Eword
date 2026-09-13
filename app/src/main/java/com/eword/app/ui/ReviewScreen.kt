@@ -178,6 +178,19 @@ fun ReviewScreen(core: AppCore, unit: Int, stage: Int, push: (Screen) -> Unit, p
                     Text("共 ${queue.size} 词", fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(24.dp))
+                    // 最后一张判错了也能退回来改。没有这个按钮，「已过完」这一屏就是
+                    // 死胡同：误点「记住了」的那个词已经离开本功能区的队列，
+                    // 要等下一轮温习才可能再遇到。
+                    OutlinedButton(
+                        onClick = {
+                            val prev = queue[queue.size - 1]
+                            core.setState(packId, prev.id, state)
+                            core.clearReveal(packId, prev.id)
+                            idx = queue.size - 1
+                        },
+                        shape = cardShape()
+                    ) { Text("上一个") }
+                    Spacer(Modifier.height(10.dp))
                     OutlinedButton(onClick = pop, shape = cardShape()) { Text("返回单元列表") }
                 }
             }
@@ -329,6 +342,22 @@ fun ReviewScreen(core: AppCore, unit: Int, stage: Int, push: (Screen) -> Unit, p
             val locked = autoForgetful
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // 上一个：回到上一张，并把它复位成「待温习」。
+                // 复位是必需的：上一张可能已经被判成温习二/最终页面，状态不写回来，
+                // 它就不在本功能区的队列里了，改判也无从生效。
+                // 揭示状态一并清掉 —— 回来必须重新看过释义才能再判，
+                // 不能因为回退就把「没看过释义不许判定」这条规则破掉。
+                OutlinedButton(
+                    onClick = {
+                        val prev = queue[idx - 1]
+                        core.setState(packId, prev.id, state)
+                        core.clearReveal(packId, prev.id)
+                        idx--
+                    },
+                    enabled = idx > 0,
+                    shape = cardShape()
+                ) { Text("上一个") }
+
                 OutlinedButton(
                     onClick = {
                         if (stage == 2) core.setState(packId, w.id, WordState.REVIEW1)
