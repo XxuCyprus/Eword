@@ -4,7 +4,7 @@
 
 <p>
   <img src="https://img.shields.io/badge/Android-11%2B-3DDC84?logo=android&logoColor=white" alt="Android 11+">
-  <img src="https://img.shields.io/badge/%E5%BA%94%E7%94%A8-v4.1.5-2F6BFF" alt="应用版本 v4.1.5">
+  <img src="https://img.shields.io/badge/%E5%BA%94%E7%94%A8-v4.1.6-2F6BFF" alt="应用版本 v4.1.6">
   <img src="https://img.shields.io/badge/%E8%AF%8D%E5%8C%85-v18-6B7280" alt="词包版本 v18">
   <img src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-6B7280" alt="许可证">
 </p>
@@ -81,7 +81,7 @@ Eword 是一款完全离线的 Android 背单词应用，词库取四六级历�
 
 ## 安装
 
-1. 在[最新版 Release](https://github.com/XxuCyprus/Eword/releases/latest) 下载 `Eword-v4.1.5.apk` 并安装（首次安装需在系统设置中允许安装未知来源应用）。
+1. 在[最新版 Release](https://github.com/XxuCyprus/Eword/releases/latest) 下载 `Eword-v4.1.6.apk` 并安装（首次安装需在系统设置中允许安装未知来源应用）。
 2. 打开[全部 Releases](https://github.com/XxuCyprus/Eword/releases)，找到词包那一版（标题形如 `Eword CET4-6 Pack v18`），下载 `Eword-CET4-6-Pack-v18.ewp`。词包与应用的 Release 分开列出，因此词包不在「最新版」页面上，需要到列表里找。
 3. 打开 Eword →「我的单词本」→「导入单词本」→ 选择刚下载的 `.ewp`，等待导入完成。
 
