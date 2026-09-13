@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Activity 的窗口主题。界面本身由 Compose 绘制（见 ui/Theme.kt），
+    这里只负责 Compose 接管**之前**的那一帧：窗口底色与系统栏，
+    免得冷启动时先闪一下白底再被 Compose 覆盖。
+
+    深浅色拆到 values-night 覆盖 —— 同一份里写死 Light 会在深色模式下留白底。
+-->
 <resources>
-    <style name="Theme.Eword" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.Eword" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>
