@@ -4,8 +4,8 @@
 
 <p>
   <img src="https://img.shields.io/badge/Android-11%2B-3DDC84?logo=android&logoColor=white" alt="Android 11+">
-  <img src="https://img.shields.io/badge/%E5%BA%94%E7%94%A8-v4.1.2-2F6BFF" alt="应用版本 v4.1.2">
-  <img src="https://img.shields.io/badge/%E8%AF%8D%E5%8C%85-v15-6B7280" alt="词包版本 v15">
+  <img src="https://img.shields.io/badge/%E5%BA%94%E7%94%A8-v4.1.3-2F6BFF" alt="应用版本 v4.1.3">
+  <img src="https://img.shields.io/badge/%E8%AF%8D%E5%8C%85-v16-6B7280" alt="词包版本 v16">
   <img src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-6B7280" alt="许可证">
 </p>
 
@@ -55,7 +55,7 @@ Eword 是一款完全离线的 Android 背单词应用，词库取四六级历�
 单词 → 音标 · 级别 · 真题句数 → 词义 → 单词变形 → 形近词 → 近义词 → 短语搭配 → 例句
 ```
 
-- **词义按来源分组** —— 真题里出现过的义项归入「真题」，真题未涉及、按词汇大纲补充的归入「真题补充」。哪些考过、哪些只需了解，一眼可辨。单词在真题里往往只用一个意思出现，只收真题义项会让释义偏窄（`bank` 只剩「银行」），因此每个词都补到能覆盖备考所需的常用义项。
+- **词义按来源分组** —— 真题里出现过的义项归入「真题」，真题未涉及、按词典补充的归入「词典补充」。哪些考过、哪些只需了解，一眼可辨。单词在真题里往往只用一个意思出现，只收真题义项会让释义偏窄（`bank` 只剩「银行」），因此每个词都补到能覆盖备考所需的常用义项。
 - **单词变形只列真题原文里出现过的形态**，逐一标出变形名称；长词不会硬凑比较级，名词也不会硬塞动词形式。
 - **形近词与近义词可直接点击跳转**，进入另一个词的详情页；返回后停在原卡片、原单元与原进度。
 - **短语搭配与例句可在设置中整体隐藏**，只留单词与词义。
@@ -87,8 +87,8 @@ Eword 是一款完全离线的 Android 背单词应用，词库取四六级历�
 
 ## 安装
 
-1. 在[最新版 Release](https://github.com/XxuCyprus/Eword/releases/latest) 下载 `Eword-v4.1.2.apk` 并安装（首次安装需在系统设置中允许安装未知来源应用）。
-2. 打开[全部 Releases](https://github.com/XxuCyprus/Eword/releases)，找到词包那一版（标题形如 `Eword CET46 Pack v15`），下载 `Eword-CET46-Pack-v15.ewp`。
+1. 在[最新版 Release](https://github.com/XxuCyprus/Eword/releases/latest) 下载 `Eword-v4.1.3.apk` 并安装（首次安装需在系统设置中允许安装未知来源应用）。
+2. 打开[全部 Releases](https://github.com/XxuCyprus/Eword/releases)，找到词包那一版（标题形如 `Eword CET46 Pack v16`），下载 `Eword-CET46-Pack-v16.ewp`。
 3. 打开 Eword →「我的单词本」→「导入单词本」→ 选择刚下载的 `.ewp`，等待导入完成。
 
 > 系统要求 **Android 11（API 30）及以上**。
@@ -165,7 +165,7 @@ Eword/
 
 | 内容 | 判据 |
 |---|---|
-| 词义 | 按来源分组：真题里出现过的标「真题」，真题之外按词汇大纲补充的标「真题补充」 |
+| 词义 | 按来源分组：真题里出现过的标「真题」，真题之外按词典补充的标「词典补充」 |
 | 例句 | 必须能在真题原文中逐条核实、且中英对应；核实不了的宁可留空 |
 | 短语搭配 | 只收在真题里跨卷稳定出现的搭配 |
 | 单词变形 | 只收真题原文里真实出现过的形态 |
@@ -182,8 +182,8 @@ Eword/
 
 | 产物 | 标签 | Release 标记 |
 |---|---|---|
-| 应用 | `app-v4.1.2` | Latest |
-| 词包 | `pack-cet46-v15` | 不标 Latest |
+| 应用 | `app-v4.1.3` | Latest |
+| 词包 | `pack-cet46-v16` | 不标 Latest |
 
 词包的 `packId` 固定为 `cet46`，数据每更新一次版本号递增一次；所需的最低应用版本由词包清单自己声明。
 

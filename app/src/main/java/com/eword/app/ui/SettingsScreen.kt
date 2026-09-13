@@ -139,7 +139,7 @@ fun SettingsScreen(core: AppCore, pop: () -> Unit) {
                     "和变形形态都不算，它们是单词变形那一栏的内容。\n" +
                     "近义词要求双方列出的主要义项里有同一条意思（并参照 WordNet 同义词集），\n" +
                     "有一侧只是冷僻义项撞上的不收，核不实的留空。\n" +
-                    "词义按来源分组：真题里出现过的标「真题」，真题之外按词汇大纲补的标「真题补充」。\n" +
+                    "词义按来源分组：真题里出现过的标「真题」，真题之外按词典补的标「词典补充」。\n" +
                     "音标与词性来自其他来源，发音为随词包导入的美式音频。",
                 fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 19.sp

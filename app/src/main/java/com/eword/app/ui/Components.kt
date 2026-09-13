@@ -64,7 +64,7 @@ val RadiusChip = 10.dp
 val AccentBlue = Color(0xFF2F6BFF)
 val AccentGreen = Color(0xFF1D9E75)
 
-/** 词义分组标题里「真题」的颜色：与「真题补充」的灰区分开，一眼能看出主次 */
+/** 词义分组标题里「真题」的颜色：与「词典补充」的灰区分开，一眼能看出主次 */
 private val SensedLabelColor = Color(0xFF1D7A50)
 
 fun cardShape() = RoundedCornerShape(RadiusCard)
@@ -403,7 +403,7 @@ fun WordHead(
 /**
  * 词性 + 意思，按来源分组列出。
  *
- * 义项分两类：真题里出现过的、以及词典补充的（界面上标「真题补充」）。同一类的义项
+ * 义项分两类：真题里出现过的、以及词典补充的（界面上标「词典补充」）。同一类的义项
  * **共用一个标签**，标签作为该组的小标题放在义项上方，而不是每个义项后面
  * 各挂一遍同样的四个字——那样既重复又看不出分组。
  *
