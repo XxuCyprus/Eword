@@ -4,7 +4,8 @@
 
 <p>
   <img src="https://img.shields.io/badge/Android-11%2B-3DDC84?logo=android&logoColor=white" alt="Android 11+">
-  <img src="https://img.shields.io/github/v/release/XxuCyprus/Eword?label=release" alt="最新版本">
+  <img src="https://img.shields.io/badge/%E5%BA%94%E7%94%A8-v4.1.0-2F6BFF" alt="应用版本 v4.1.0">
+  <img src="https://img.shields.io/badge/%E8%AF%8D%E5%8C%85-v12-6B7280" alt="词包版本 v12">
   <img src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-6B7280" alt="许可证">
 </p>
 
@@ -72,7 +73,8 @@
 
 > 需要 Android 11 及以上。词包必须单独下载并导入，应用内不含词库数据。
 > 应用与词包**分别更新**：换新版词包不必重装应用，已装词包的版本号在
-> 「我的单词本」和设置里都能看到。
+> 「我的单词本」和设置里都能看到。两个 Release 的标签前缀分别是 `app-` 与 `pack-`，
+> 一眼可分。
 
 ---
 
