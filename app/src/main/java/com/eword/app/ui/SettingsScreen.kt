@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.eword.app.BuildConfig
 import com.eword.app.data.AppCore
 import com.eword.app.data.WordState
 
@@ -137,6 +138,21 @@ fun SettingsScreen(core: AppCore, pop: () -> Unit) {
                     "近义词取自 WordNet 同义词集，要求双方互认，收不到就留空。\n" +
                     "词义按来源分组：真题里出现过的标「真题」，词典补充的标「大纲补充」。\n" +
                     "音标与词性来自其他来源，发音为随词包导入的美式音频。",
+                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 19.sp
+            )
+
+            // App 与词包各自独立发版，两个版本号都列出来，便于对不上时排查
+            Spacer(Modifier.height(26.dp))
+            Text("关于版本", fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "应用版本 v${BuildConfig.VERSION_NAME}\n" +
+                    "词包版本 " + (core.enabledPack?.manifest?.versionLabel
+                        ?: core.packs.firstOrNull()?.manifest?.versionLabel
+                        ?: "尚未导入词包") + "\n" +
+                    "应用与词包分别更新：词包换了新版，应用不必跟着升级，学习进度照旧保留。",
                 fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 19.sp
             )

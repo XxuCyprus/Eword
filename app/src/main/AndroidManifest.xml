@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    allowBackup 关闭：学习进度只存在本机，卸载即随之清除。
+    allowBackup 关闭 + dataExtractionRules 全排除：学习进度只存在本机，卸载即随之清除。
     若允许备份，卸载重装会从系统备份里恢复进度，与「卸载即清空」的说法不符。
+    Android 12 起 allowBackup 已废弃，需另用 dataExtractionRules 声明范围，两者保持一致。
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"

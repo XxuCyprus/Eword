@@ -43,9 +43,10 @@
 | 温习二 | 错过的词再来一轮 |
 | 最终页面 | 已彻底记住的词入册，可「再记一次」退回重走 |
 
-回忆环节有两条路径：**逐条展开例句**（翻到底自动记为「没记住」），
+回忆环节有两条路径：**逐条展开例句**（翻到例句意思即记为「没记住」），
 或**显示完整答案核对**（核对后自主判定）。
-**看答案之前「记住了」不可点击** —— 不让用户靠模糊印象蒙过去。
+**看过释义之前「记住了」不可点击** —— 不让用户靠模糊印象蒙过去。
+例句逐条展开时只给英文，看过释义之后才补上中文译文。
 
 **一张卡片看全一个词**
 
@@ -63,12 +64,15 @@
 
 ## 安装
 
-1. 前往 [Releases](https://github.com/XxuCyprus/Eword/releases/latest) 下载 `Eword-v4.0.0.apk`
+1. 前往 [Releases](https://github.com/XxuCyprus/Eword/releases) 下载应用安装包
 2. 安装应用（首次安装需在系统设置中允许安装未知来源应用）
-3. 在**同一页面**下载词包 `Eword-CET46-Pack-v11.ewp`
+3. 在 [词包发布页](https://github.com/XxuCyprus/Eword/releases?q=Pack) 下载最新的
+   `Eword-CET46-Pack-v*.ewp`
 4. 打开 Eword → **我的单词本** → **导入单词本** → 选择刚下载的 `.ewp`，等待导入完成
 
 > 需要 Android 11 及以上。词包必须单独下载并导入，应用内不含词库数据。
+> 应用与词包**分别更新**：换新版词包不必重装应用，已装词包的版本号在
+> 「我的单词本」和设置里都能看到。
 
 ---
 
@@ -86,6 +90,7 @@ Eword/
 │       │   ├── Inflections.kt        单词变形：把词包里的形态数据整理成可展示的行
 │       │   ├── data/
 │       │   │   ├── Models.kt         数据模型（词条、义项、例句、搭配、变形…）
+│       │   │   ├── ReviewFlow.kt     温习判定规则：什么时候可判定、什么时候自动判没记住
 │       │   │   ├── PackRepository.kt 词包导入、解压、启停与删除
 │       │   │   ├── AppCore.kt        全局状态与学习进度读写
 │       │   │   └── Pronouncer.kt     音频播放
@@ -101,6 +106,7 @@ Eword/
 │       └── res/                      图标、主题、字符串
 ├── assets/                           仓库配图（当前为空，见其中说明）
 ├── .github/ISSUE_TEMPLATE/           Issue 模板
+├── CHANGELOG.md                      更新日志：应用与词包各自独立记
 ├── gradle/                           Gradle Wrapper
 ├── build.gradle.kts                  根构建脚本：插件版本
 ├── settings.gradle.kts               模块声明与依赖仓库

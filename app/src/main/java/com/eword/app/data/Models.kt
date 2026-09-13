@@ -125,7 +125,15 @@ data class PackManifest(
     @SerializedName("version") val version: Int = 1,
     @SerializedName("coverage") val coverage: String = "",
     @SerializedName("wordCount") val wordCount: Int = 0
-)
+) {
+    /**
+     * 词包版本号。
+     *
+     * 词包与 App 各自独立发版，所以这个号必须让用户看得到 ——
+     * 否则「你更新词包了吗」会变成一笔糊涂账：App 内看不到手上的包是第几版。
+     */
+    val versionLabel: String get() = "v$version"
+}
 
 /** 一个完整词包 */
 data class WordPack(

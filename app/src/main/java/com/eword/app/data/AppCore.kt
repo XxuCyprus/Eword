@@ -3,6 +3,7 @@ package com.eword.app.data
 import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -30,7 +31,7 @@ class AppCore(private val ctx: Context) {
         private set
 
     // ---------- 设置 ----------
-    var unitSize by mutableStateOf(prefs.getInt(K_UNIT, 52))
+    var unitSize by mutableIntStateOf(prefs.getInt(K_UNIT, 52))
         private set
     var autoPronounce by mutableStateOf(prefs.getBoolean(K_AUTO, true))
         private set
@@ -67,15 +68,26 @@ class AppCore(private val ctx: Context) {
     private val shuffleState = mutableStateMapOf<String, Boolean>()
 
     /**
-     * 温习卡片的「揭示进度」：key = "packId|wordId"，值 = 已揭示的例句条数；
-     * 以及是否已点开「显示例句意思」。
+     * 温习卡片的「揭示进度」：key = "packId|wordId"。
      *
      * 放在这里而不是 remember 里，是为了让点形近词/近义词跳转后再返回时，
      * 之前逐条揭示出来的例句不会丢失（跳转前什么样，跳转回来还是什么样）。
      * 只存在内存中，随进程结束清空。
      */
     private val revealCount = mutableStateMapOf<String, Int>()
+
+    /** 答案是否已经铺开。两条路径都会置位：逐条看例句看到底、直接点「显示完整答案」 */
     private val revealFull = mutableStateMapOf<String, Boolean>()
+
+    /**
+     * 这一次是**靠逐条例句的提示**才看得下去的：key = "packId|wordId"。
+     *
+     * 与 revealFull 必须分开存。「显示完整答案（核对用）」也置位 revealFull，
+     * 但它的意思是「我只是核对有没有记错」，不代表答不上来；两者混用一个标志时
+     * 会把「核对」也当成「靠提示才想起来」，于是主观核对的用户被判成没记住，
+     * 判定按钮还被锁死。
+     */
+    private val revealByHints = mutableStateMapOf<String, Boolean>()
 
     fun revealCountOf(packId: String, wordId: String): Int =
         revealCount["$packId|$wordId"] ?: 0
@@ -91,10 +103,18 @@ class AppCore(private val ctx: Context) {
         revealFull["$packId|$wordId"] = b
     }
 
-    /** 清掉某个词的揭示进度（切换词/换包时用不到，保留给后续「重置」类操作） */
+    fun revealByHintsOf(packId: String, wordId: String): Boolean =
+        revealByHints["$packId|$wordId"] ?: false
+
+    fun setRevealByHints(packId: String, wordId: String, b: Boolean) {
+        revealByHints["$packId|$wordId"] = b
+    }
+
+    /** 清掉某个词的揭示进度（换卡片、判定后调用） */
     fun clearReveal(packId: String, wordId: String) {
         revealCount.remove("$packId|$wordId")
         revealFull.remove("$packId|$wordId")
+        revealByHints.remove("$packId|$wordId")
     }
 
     private val orderCache = HashMap<String, List<WordEntry>>()

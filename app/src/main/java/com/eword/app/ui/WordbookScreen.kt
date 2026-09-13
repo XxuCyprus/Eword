@@ -107,7 +107,7 @@ fun WordbookScreen(core: AppCore, push: (Screen) -> Unit, pop: () -> Unit) {
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "${p.words.size} 词" +
+                            "${p.words.size} 词 · ${p.manifest.versionLabel}" +
                                 (if (p.manifest.coverage.isNotBlank()) " · ${p.manifest.coverage}" else ""),
                             fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -184,7 +184,8 @@ fun PackDetailScreen(core: AppCore, packId: String, push: (Screen) -> Unit, pop:
     val pageScroll = rememberScrollState()
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-        EwordTopBar(pack.manifest.name, onBack = pop, subtitle = "${pack.words.size} 词")
+        EwordTopBar(pack.manifest.name, onBack = pop,
+            subtitle = "${pack.words.size} 词 · ${pack.manifest.versionLabel}")
 
         Column(
             Modifier

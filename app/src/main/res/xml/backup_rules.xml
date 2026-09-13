@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 11 及以下用的备份规则（fullBackupContent 的旧格式）。
+    Android 12 起改看 data_extraction_rules.xml，两份内容一致：
+    学习进度只存在本机，卸载即随之清除，不进云备份、也不随换机迁移。
+-->
+<full-backup-content>
+    <exclude domain="root" />
+    <exclude domain="file" />
+    <exclude domain="database" />
+    <exclude domain="sharedpref" />
+    <exclude domain="external" />
+</full-backup-content>
