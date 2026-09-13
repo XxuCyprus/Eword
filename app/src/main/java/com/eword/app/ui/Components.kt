@@ -308,11 +308,16 @@ fun LevelBadge(level: String) {
 /**
  * 真题句数徽章。
  *
- * [freq] = 该词在四六级历年真题的逐句语料里出现在**多少个不同的句子**中。
- * 它与下方展示的例句条数是同一个来源，所以：
- *   · freq >= 例句条数 恒成立（例句是这些句子里挑出来的）
- *   · 差别只在于例句每词最多显示 5 条，且按契合度排序取前几条
- * 没有例句的词 freq 就是 0 —— 真题里查不到成句，徽章不显示（v17 起只剩 4 个）。
+ * [freq] = 该词在 2015–2026 年真题**卷面正文里出现在多少个不同的句子**中
+ * （含题干与选项 —— 它们也在卷面上；任何形态都算，同一句只算一次）。
+ * 所以 freq >= 例句条数恒成立：例句是从这些句子里挑出来的，
+ * 每词最多列 5 条、且只收中英能对上（有官方译文可核对）的。
+ *
+ * freq 为 0 表示卷面上根本查不到这个词，徽章不显示。
+ *
+ * freq > 0 却没有例句，是**正常**的一类：这些词在卷面上只出现在题干或选项里，
+ * 而卷面不给题干与选项配译文，收不成例句。详情页对这种情况有一句说明
+ * （见 WordFullBody 里 showExamples 的那一支），免得用户以为例句丢了。
  *
  * 文案用「真题 N 句」而不是「N 次」：「次」容易被理解成出现次数，
  * 而这里数的是句子；也不必再解释「为什么次数和例句数不一样」。
@@ -770,5 +775,17 @@ fun WordFullBody(
         Spacer(Modifier.height(20.dp))
         ExampleList(w.examples, showTranslation = true, highlight = w.word,
                     known = known, suffix = suffix)
+    } else if (core.showExamples && w.freq > 0) {
+        // 徽章上有句数、下面却没有例句：这些词在卷面只出现在题干或选项里。
+        // 说清楚，比让用户以为例句丢了强。判据见 FreqBadge 的注释。
+        Spacer(Modifier.height(20.dp))
+        SectionLabel("例句")
+        Text(
+            "这个词在真题里只出现在题干或选项里。卷面不给题干与选项配译文，" +
+                "没有可对照的译文就收不成例句 —— 所以上面有句数、这里没有例句。",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 18.sp
+        )
     }
 }
