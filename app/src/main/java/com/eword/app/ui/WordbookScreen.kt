@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -46,10 +47,14 @@ fun WordbookScreen(core: AppCore, push: (Screen) -> Unit, pop: () -> Unit) {
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            msg = core.importPack(uri).fold(
-                { "导入成功：$it（已自动启用）" },
-                { "导入失败：${it.message}" }
-            )
+            // 导入要几十秒（拷 66 MB、解包 106 MB 音频、再解析一遍词包），全程后台线程；
+            // 期间界面显示进度、按钮禁用，不再像以前那样冻住主线程
+            core.importPackAsync(uri) { r ->
+                msg = r.fold(
+                    { "导入成功：$it（已自动启用）" },
+                    { "导入失败：${it.message ?: it.javaClass.simpleName}" }
+                )
+            }
         }
     }
 
@@ -66,9 +71,25 @@ fun WordbookScreen(core: AppCore, push: (Screen) -> Unit, pop: () -> Unit) {
         Column(Modifier.padding(horizontal = 16.dp)) {
             Button(
                 onClick = { picker.launch(arrayOf("*/*")) },
+                enabled = !core.busy,
                 modifier = Modifier.fillMaxWidth(),
                 shape = cardShape()
-            ) { Text("导入单词本（.ewp / .json）") }
+            ) { Text(if (core.busy) "正在处理，请稍候…" else "导入单词本（.ewp / .json）") }
+
+            if (core.busy) {
+                Spacer(Modifier.height(10.dp))
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "正在导入词包（约 67 MB）。这一步要几十秒，请不要退出应用 —— " +
+                        "中途退出会留下不完整的词本。",
+                    fontSize = 12.sp, lineHeight = 18.sp,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
             msg?.let {
                 Spacer(Modifier.height(8.dp))
                 Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -167,14 +188,14 @@ fun WordbookScreen(core: AppCore, push: (Screen) -> Unit, pop: () -> Unit) {
         ConfirmDialog(
             title = "删除这个词本？",
             message = "将从设备上删除「${delPack?.manifest?.name ?: delId}」：\n" +
-                "包括词本数据与随包导入的音频，以及它的学习进度。\n\n" +
-                "此操作不可撤销（重新导入 .ewp 可恢复词本，但学习进度无法恢复）。",
+                "包括词本数据与随包导入的音频。\n\n" +
+                "学习进度会保留 —— 以后重新导入同一个词本时，之前学到哪里还在。\n" +
+                "此操作不可撤销。",
             confirmText = "确认删除",
             danger = true,
             onConfirm = {
-                core.deletePack(delId)
                 pendingDelete = null
-                msg = "已删除词本"
+                core.deletePackAsync(delId) { msg = "已删除词本" }
             },
             onDismiss = { pendingDelete = null }
         )
@@ -397,14 +418,14 @@ fun PackDetailScreen(core: AppCore, packId: String, push: (Screen) -> Unit, pop:
         "delete" -> ConfirmDialog(
             title = "删除这个词本？",
             message = "将从设备上删除「${pack.manifest.name}」：\n" +
-                "包括词本数据与随包导入的音频，以及它的学习进度。\n\n" +
-                "此操作不可撤销（重新导入 .ewp 可恢复词本，但学习进度无法恢复）。",
+                "包括词本数据与随包导入的音频。\n\n" +
+                "学习进度会保留 —— 以后重新导入同一个词本时，之前学到哪里还在。\n" +
+                "此操作不可撤销。",
             confirmText = "确认删除",
             danger = true,
             onConfirm = {
-                core.deletePack(packId)
                 confirm = null
-                pop()
+                core.deletePackAsync(packId) { pop() }
             },
             onDismiss = { confirm = null }
         )

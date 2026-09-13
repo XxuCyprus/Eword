@@ -18,7 +18,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         core = AppCore(applicationContext)
-        core.load()
+        // 词包 16 MB：解析放后台线程，界面先显示「正在载入词包…」。
+        // 以前是在主线程 load() 完才 setContent，冷启动每次白屏一到几秒。
+        core.loadAsync()
         setContent {
             EwordTheme {
                 Surface(

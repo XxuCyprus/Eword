@@ -4,8 +4,8 @@
 
 <p>
   <img src="https://img.shields.io/badge/Android-11%2B-3DDC84?logo=android&logoColor=white" alt="Android 11+">
-  <img src="https://img.shields.io/badge/%E5%BA%94%E7%94%A8-v4.1.1-2F6BFF" alt="应用版本 v4.1.1">
-  <img src="https://img.shields.io/badge/%E8%AF%8D%E5%8C%85-v13-6B7280" alt="词包版本 v13">
+  <img src="https://img.shields.io/badge/%E5%BA%94%E7%94%A8-v4.1.2-2F6BFF" alt="应用版本 v4.1.2">
+  <img src="https://img.shields.io/badge/%E8%AF%8D%E5%8C%85-v15-6B7280" alt="词包版本 v15">
   <img src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-6B7280" alt="许可证">
 </p>
 
@@ -66,10 +66,10 @@
 
 ## 安装
 
-1. 前往 [Releases](https://github.com/XxuCyprus/Eword/releases/latest) 下载 `Eword-v4.1.1.apk`
+1. 前往 [Releases](https://github.com/XxuCyprus/Eword/releases/latest) 下载 `Eword-v4.1.2.apk`
 2. 安装应用（首次安装需在系统设置中允许安装未知来源应用）
 3. 打开[全部 Releases](https://github.com/XxuCyprus/Eword/releases)，找到词包那一版
-   （标题形如 `Eword CET46 Pack v13`），下载 `Eword-CET46-Pack-v13.ewp`
+   （标题形如 `Eword CET46 Pack v15`），下载 `Eword-CET46-Pack-v15.ewp`
 4. 打开 Eword → **我的单词本** → **导入单词本** → 选择刚下载的 `.ewp`，等待导入完成
 
 > 需要 Android 11 及以上。词包必须单独下载并导入，应用内不含词库数据。
@@ -134,7 +134,12 @@ Eword/
 ## 数据来源
 
 例句、中文译文与短语搭配取自四六级历年真题原文及官方译文，并逐条核验中英是否对应；
-近义词取自 WordNet；音标取自 CMU 发音词典。
+音标取自 CMU 发音词典。
+
+**形近词**只收不同族、拼写真的相近的词（差异出现在头、中、尾都算）：同族派生词
+（arrival 与 arrive）与变形形态（abandoned 之类）都不算，那些属于「单词变形」。
+**近义词**要求共同义项就是词条自己列出的那条中文意思（并参照 WordNet 同义词集），
+两边意思对不上的一律不收；核不实的宁可留空。
 
 > 真题原文与官方译文的版权归原出版方所有，本项目仅作学习用途。
 

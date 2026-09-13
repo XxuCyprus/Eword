@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -149,14 +150,23 @@ fun UnitListScreen(
     onBack: () -> Unit,
     onPick: (Int) -> Unit,
     initialScrollIndex: Int = 0,
-    onScrollIndexChanged: ((Int) -> Unit)? = null
+    onScrollIndexChanged: ((Int) -> Unit)? = null,
+    emptyText: String = "还没有可用的单元",
+    onLeaving: (() -> Unit)? = null
 ) {
+    // 离开这一页时把滚动位置落盘一次（以前每滚一行写一次配置）
+    if (onLeaving != null) {
+        DisposableEffect(Unit) { onDispose { onLeaving() } }
+    }
+
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         EwordTopBar(title, onBack = onBack, subtitle = subtitle)
 
-        if (units.isEmpty()) {
+        // 「一个词都没有」和「有单元但全都没待办」是两回事，但用户看到的都是空，
+        // 给的说明也该一样 —— 以前只有前者有提示，后者是一屏点不动的灰条。
+        if (units.isEmpty() || units.all { it.pending == 0 }) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("还没有可用的单元", fontSize = 14.sp,
+                Text(emptyText, fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@Column

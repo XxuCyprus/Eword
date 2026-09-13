@@ -134,25 +134,34 @@ fun SettingsScreen(core: AppCore, pop: () -> Unit) {
                 "例句与译文、短语搭配取自四六级真题原文及官方译文，不使用自造例句。\n" +
                     "例句逐条核验过中英是否对得上，核不实的宁可空着。\n" +
                     "句式用法从已核验的真题例句里抽模板，只在真题里稳定复现的才收。\n" +
-                    "单词变形只收真题原文里出现过的形态；形近词按拼写相近程度得出。\n" +
-                    "近义词取自 WordNet 同义词集，要求双方互认，收不到就留空。\n" +
+                    "单词变形只收真题原文里出现过的形态。\n" +
+                    "形近词只收不同族、拼写真的相近的词：同族派生词（arrival 与 arrive）\n" +
+                    "和变形形态都不算，它们是单词变形那一栏的内容。\n" +
+                    "近义词要求共同义项就是本词条列出的那条意思（并参照 WordNet 同义词集），\n" +
+                    "两边意思对不上的一律不收，核不实的留空。\n" +
                     "词义按来源分组：真题里出现过的标「真题」，词典补充的标「大纲补充」。\n" +
                     "音标与词性来自其他来源，发音为随词包导入的美式音频。",
                 fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 19.sp
             )
 
-            // App 与词包各自独立发版，两个版本号都列出来，便于对不上时排查
+            // App 与词包各自独立发版，两个版本号都列出来，便于对不上时排查。
+            // 词包版本只报**当前启用**的那个：停用了还想看某个词本的版本，
+            // 到「我的单词本」里看，那里每个词本都列着自己的版本。
+            // 早先未启用时会退而显示第一个词本的版本 —— 装了两个以上词本时，
+            // 那句话显示的版本并不属于当前在用的词本，是错的。
+            val curPack = core.enabledPack?.manifest
             Spacer(Modifier.height(26.dp))
             Text("关于版本", fontSize = 15.sp, fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(6.dp))
             Text(
                 "应用版本 v${BuildConfig.VERSION_NAME}\n" +
-                    "词包版本 " + (core.enabledPack?.manifest?.versionLabel
-                        ?: core.packs.firstOrNull()?.manifest?.versionLabel
-                        ?: "尚未导入词包") + "\n" +
-                    "应用与词包分别更新：词包换了新版，应用不必跟着升级，学习进度照旧保留。",
+                    "词包版本 " + (curPack?.let { "${it.name} ${it.versionLabel}" }
+                        ?: "当前没有启用词本") + "\n" +
+                    "应用与词包分别更新：词包换了新版，应用不必跟着升级，学习进度照旧保留。\n" +
+                    "同一个词本导入新版本会直接替换旧的，不必先删；装了多个词本时，" +
+                    "这里显示的是当前启用的那个。",
                 fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 19.sp
             )
@@ -188,7 +197,11 @@ fun SettingsScreen(core: AppCore, pop: () -> Unit) {
         ConfirmDialog(
             title = "保存更改？",
             message = "将保存以下设置：\n\n" +
-                "· 每单元单词数：${dUnit}\n" +
+                "· 每单元单词数：${dUnit}" +
+                (if (dUnit != core.unitSize)
+                    "（当前 ${core.unitSize} —— 改了之后全部词条的单元编号会重排，\n" +
+                        "  已学状态保留，但每个单元「上次学到第几个词」会按新划分重算）\n"
+                else "\n") +
                 "· 自动发音：${if (dAuto) "开" else "关"}\n" +
                 "· 显示短语搭配：${if (dColl) "开" else "关"}\n" +
                 "· 显示例句：${if (dEx) "开" else "关"}\n\n" +

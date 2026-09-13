@@ -17,7 +17,16 @@ class PackRepository(private val ctx: Context) {
 
     private val gson = Gson()
 
+    /**
+     * 上一次 [loadAll] 读不出来的词包（名字 → 原因）。
+     *
+     * 早先每个词包各自 runCatching 静默跳过：词包文件半写（导入中途被强杀）时
+     * 词本会「凭空消失」，用户侧零提示。留下来交给界面显示一行红字。
+     */
+    val lastFailures = mutableListOf<Pair<String, String>>()
+
     fun loadAll(): List<WordPack> {
+        lastFailures.clear()
         val out = LinkedHashMap<String, WordPack>()
 
         runCatching {
@@ -26,10 +35,10 @@ class PackRepository(private val ctx: Context) {
                 ?.forEach { name ->
                     runCatching {
                         ctx.assets.open("packs/$name").use { ins ->
-                            val p = gson.fromJson(ins.readBytes().toString(Charsets.UTF_8), WordPack::class.java)
+                            val p = gson.fromJson(ins.reader(Charsets.UTF_8), WordPack::class.java)
                             if (p?.manifest?.packId?.isNotBlank() == true) out[p.manifest.packId] = p
                         }
-                    }
+                    }.onFailure { lastFailures.add(name to reason(it)) }
                 }
         }
 
@@ -39,12 +48,14 @@ class PackRepository(private val ctx: Context) {
                 runCatching {
                     val p = gson.fromJson(f.readText(Charsets.UTF_8), WordPack::class.java)
                     if (p?.manifest?.packId?.isNotBlank() == true) out[p.manifest.packId] = p
-                }
+                }.onFailure { lastFailures.add(f.name to reason(it)) }
             }
         }
 
         return out.values.toList()
     }
+
+    private fun reason(e: Throwable): String = e.message ?: e.javaClass.simpleName
 
     /**
      * 从系统文件选择器导入 .json 或 .ewp（压缩包内含 pack.json 与 audio/）。
@@ -73,16 +84,33 @@ class PackRepository(private val ctx: Context) {
                 tmp.delete()
             }
         } else {
-            val p = ctx.contentResolver.openInputStream(uri)?.use { ins ->
-                gson.fromJson(ins.reader(Charsets.UTF_8), WordPack::class.java)
-            }
-            val id = p?.manifest?.packId?.takeIf { it.isNotBlank() } ?: error("词包缺少 packId")
+            // 只流式读到 manifest.packId 就停。早先是把整包 16 MB 解析成对象图再取一个
+            // 字段（构造近 30 万个 String），而紧接着 loadAll() 还会再整包解析一次 ——
+            // 主线程峰值内存能到 ~100 MB，中低端机直接 OOM。
+            val id = ctx.contentResolver.openInputStream(uri)?.use { ins ->
+                readPackId(ins)
+            } ?: error("无法读取所选文件")
             // 词表 json 本身远小于音频包，直接落盘
             ctx.contentResolver.openInputStream(uri)?.use { ins ->
                 File(dir, "$id.json").outputStream().use { out -> ins.copyTo(out) }
             } ?: error("无法读取所选文件")
             id
         }
+    }
+
+    /** 流式读到 manifest 里的 packId 就返回，不构造整包对象 */
+    private fun readPackId(ins: java.io.InputStream): String {
+        val type = object : com.google.gson.reflect.TypeToken<PackManifest>() {}.type
+        val reader = com.google.gson.stream.JsonReader(ins.reader(Charsets.UTF_8))
+        reader.beginObject()
+        while (reader.hasNext()) {
+            if (reader.nextName() == "manifest") {
+                val m: PackManifest = gson.fromJson(reader, type)
+                return m.packId.takeIf { it.isNotBlank() } ?: error("词包缺少 packId")
+            }
+            reader.skipValue()
+        }
+        error("词包缺少 packId")
     }
 
     /**

@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,36 +56,49 @@ fun ReviewHomeScreen(core: AppCore, push: (Screen) -> Unit, pop: () -> Unit) {
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         EwordTopBar("温习功能区", onBack = pop, subtitle = pack.manifest.name)
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            StageCard("温习一", "识记里「记住了」的单词", r1, AccentGreen) {
-                push(Screen.Review(-1, 1))
-            }
-            StageCard("温习二", "温习一里想起来的单词，再巩固一遍", r2, AccentGreen) {
-                push(Screen.Review(-2, 2))
-            }
-            StageCard("最终页面", "已彻底记住，不再出现", done, AccentBlue) {
-                push(Screen.DoneList)
-            }
+            // 计数为 0 时卡片不可点：点进去只会看到一屏点不动的灰条，
+            // 用户分不清是「还没学过」还是「App 坏了」
+            StageCard("温习一", "识记里「记住了」的单词", r1, AccentGreen,
+                hint = "先在识记功能区把单词记一遍") { push(Screen.Review(-1, 1)) }
+            StageCard("温习二", "温习一里想起来的单词，再巩固一遍", r2, AccentGreen,
+                hint = "先在温习一里过一遍") { push(Screen.Review(-2, 2)) }
+            StageCard("最终页面", "已彻底记住，不再出现", done, AccentBlue,
+                hint = "还没有彻底记住的词") { push(Screen.DoneList) }
         }
     }
 }
 
 @Composable
-private fun StageCard(title: String, desc: String, count: Int, accent: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+private fun StageCard(
+    title: String,
+    desc: String,
+    count: Int,
+    accent: androidx.compose.ui.graphics.Color,
+    hint: String,
+    onClick: () -> Unit
+) {
+    val usable = count > 0
     Column(
         Modifier
             .fillMaxWidth()
             .clip(cardShape())
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable { onClick() }
+            .clickable(enabled = usable) { onClick() }
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, fontSize = 17.sp, fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-            Text("$count 词", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = accent)
+                color = if (usable) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f))
+            Text("$count 词", fontSize = 14.sp, fontWeight = FontWeight.Medium,
+                color = if (usable) accent else MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.height(4.dp))
-        Text(desc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            if (usable) desc else "暂时没有可温习的词 —— $hint",
+            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -104,7 +118,11 @@ fun ReviewScreen(core: AppCore, unit: Int, stage: Int, push: (Screen) -> Unit, p
             onBack = pop,
             onPick = { push(Screen.Review(it, stage)) },
             initialScrollIndex = core.unitScrollIndexOf(key),
-            onScrollIndexChanged = { core.setUnitScrollIndex(key, it) }
+            onScrollIndexChanged = { core.setUnitScrollIndex(key, it) },
+            onLeaving = { core.flushUnitScroll(key) },
+            emptyText = if (stage == 1)
+                "温习一是识记里「记住了」的词，现在还没有。先去识记功能区把单词记一遍吧。"
+            else "温习二是温习一里想起来的词，现在还没有。先去温习一吧。"
         )
         return
     }
@@ -115,7 +133,21 @@ fun ReviewScreen(core: AppCore, unit: Int, stage: Int, push: (Screen) -> Unit, p
     remember { ReviewFlow.selfCheck() }
     var round by remember { mutableIntStateOf(0) }
     val queue = remember(unit, stage, packId, round) { core.queue(pack, unit, state) }
-    var idx by remember(round) { mutableIntStateOf(0) }
+
+    // 位置记在 AppCore 里：点近义词/形近词跳去词条详情时本页会离开组合，
+    // remember 里的下标随之归零，回到原本的卡就回不去了（识记页早有这套机制，
+    // 温习页一直没有；近义词覆盖扩到六千词之后这个动作会经常发生）。
+    var idx by remember(round) {
+        val saved = if (round == 0) core.reviewIndexOf(packId, unit, stage) else 0
+        mutableIntStateOf(saved.coerceIn(0, queue.size))
+    }
+    LaunchedEffect(idx, round, queue.size) {
+        if (round == 0) {
+            if (idx < queue.size) core.setReviewIndex(packId, unit, stage, idx)
+            else core.clearReviewIndex(packId, unit, stage)
+        }
+    }
+    DisposableEffect(Unit) { onDispose { core.flushReviewIndex(packId, unit, stage) } }
 
     LaunchedEffect(idx, round) {
         if (core.autoPronounce && idx < queue.size) {
@@ -433,8 +465,10 @@ fun DoneListScreen(core: AppCore, push: (Screen) -> Unit, pop: () -> Unit) {
             onConfirm = {
                 core.setState(packId, wid, WordState.NEW)
                 core.clearReveal(packId, wid)
-                // 让它重新从识记队列开始
-                core.clearMemorize(packId, core.unitIndexOf(pack, wid).coerceAtLeast(0))
+                // 让它重新从识记队列开始。unitIndexOf 找不到这个 id 时返回 -1，
+                // 不能 coerce 成 0 —— 那会把第 1 单元的识记进度清掉。
+                val u = core.unitIndexOf(pack, wid)
+                if (u >= 0) core.clearMemorize(packId, u)
                 confirm = null
             },
             onDismiss = { confirm = null }

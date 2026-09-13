@@ -45,6 +45,27 @@ fun HomeScreen(core: AppCore, push: (Screen) -> Unit) {
 
         Spacer(Modifier.height(22.dp))
 
+        // 出过错就摆一行红字出来，并且能关掉。
+        // 以前这些异常全被静默吞掉：进度「清零」、词本「消失」、喇叭「不响」，
+        // 用户侧完全无法归因。
+        core.lastError?.let { err ->
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(cardShape())
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(14.dp)
+            ) {
+                Text(err, fontSize = 12.sp, lineHeight = 18.sp,
+                    color = MaterialTheme.colorScheme.onErrorContainer)
+                Spacer(Modifier.height(8.dp))
+                Text("知道了", fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.clickable { core.clearError() })
+            }
+            Spacer(Modifier.height(22.dp))
+        }
+
         // 当前启用词本
         Column(
             Modifier

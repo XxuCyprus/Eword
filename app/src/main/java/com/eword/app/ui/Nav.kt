@@ -1,11 +1,24 @@
 package com.eword.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.eword.app.data.AppCore
 
 /** 页面路由 */
@@ -37,6 +50,12 @@ sealed interface Screen {
 
 @Composable
 fun AppRoot(core: AppCore) {
+    // 词包还在后台解析：先把「正在载入」显出来，别让用户对着白屏等
+    if (!core.ready) {
+        LoadingScreen()
+        return
+    }
+
     var stack by remember { mutableStateOf<List<Screen>>(listOf(Screen.Home)) }
 
     val push: (Screen) -> Unit = { stack = stack + it }
@@ -62,5 +81,21 @@ fun AppRoot(core: AppCore) {
         is Screen.WordDetail -> WordDetailScreen(core, s.packId, s.wordId, push, pop)
 
         is Screen.Settings -> SettingsScreen(core, pop)
+    }
+}
+
+/** 载入词包期间的过渡界面 */
+@Composable
+private fun LoadingScreen() {
+    Box(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(16.dp))
+            Text("正在载入词包…", fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

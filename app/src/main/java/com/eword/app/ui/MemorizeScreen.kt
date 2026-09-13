@@ -49,7 +49,9 @@ fun MemorizeUnitsScreen(core: AppCore, push: (Screen) -> Unit, pop: () -> Unit) 
         onBack = pop,
         onPick = { push(Screen.Memorize(it)) },
         initialScrollIndex = core.unitScrollIndexOf(key),
-        onScrollIndexChanged = { core.setUnitScrollIndex(key, it) }
+        onScrollIndexChanged = { core.setUnitScrollIndex(key, it) },
+        onLeaving = { core.flushUnitScroll(key) },
+        emptyText = "本词本的单词都识记过了，去「温习功能区」继续吧。"
     )
 }
 
@@ -158,9 +160,18 @@ fun MemorizeScreen(core: AppCore, unit: Int, push: (Screen) -> Unit, pop: () -> 
                     shape = cardShape(),
                     modifier = Modifier.weight(1f)
                 ) { Text("上一个") }
-                // 没记住：留在本单元，跳到下一个
+                // 没记住：写回「未识记」，留在本单元，跳到下一个。
+                // 必须显式写回：用户可能先误点了「记住了」，再用「上一个」回来改判，
+                // 此时若不写状态，这个词仍然是「记住了」——改判不回来。
+                // 已经是「未识记」的不重复写：第一次判「没记住」时状态本来就是 NEW，
+                // 再写一遍只是白序列化一次全量进度（进度落盘在主线程做序列化）。
                 OutlinedButton(
-                    onClick = { idx++ },
+                    onClick = {
+                        if (core.stateOf(packId, w.id) != WordState.NEW) {
+                            core.setState(packId, w.id, WordState.NEW)
+                        }
+                        idx++
+                    },
                     shape = cardShape(),
                     modifier = Modifier.weight(1f)
                 ) { Text("没记住") }
@@ -176,7 +187,8 @@ fun MemorizeScreen(core: AppCore, unit: Int, push: (Screen) -> Unit, pop: () -> 
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                "「没记住」留在本单元，之后可再来一轮；「记住了」进入温习一",
+                "「没记住」留在本单元，之后可再来一轮；「记住了」进入温习一。" +
+                    "点错了就点「上一个」回去，再按另一个按钮改判。",
                 fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

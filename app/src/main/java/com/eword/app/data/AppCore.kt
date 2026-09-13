@@ -23,11 +23,34 @@ class AppCore(private val ctx: Context) {
     private val prefs = ctx.getSharedPreferences("eword_prefs", Context.MODE_PRIVATE)
     private val gson = Gson()
     private val repo = PackRepository(ctx)
+    private val main = android.os.Handler(android.os.Looper.getMainLooper())
 
+    /** 主线程的句柄，后台线程算完把结果交回主线程套用 */
     val pronouncer = Pronouncer(ctx)
 
     var packs by mutableStateOf<List<WordPack>>(emptyList())
         private set
+
+    /** 词包与进度是否已经载入完毕。载入前界面显示「正在载入词包」，不显示空白 */
+    var ready by mutableStateOf(false)
+        private set
+
+    /** 正在导入/重新载入 —— 期间界面显示进度，不接受重复操作 */
+    var busy by mutableStateOf(false)
+        private set
+
+    /**
+     * 最近一次失败的原因，供界面显示一行红字。
+     *
+     * 载入词包、写学习进度这些地方以前全用 runCatching 静默吞掉：进度「清零」、
+     * 词本「凭空消失」、喇叭「不响」，用户侧完全无法归因。现在留一条通道。
+     */
+    var lastError by mutableStateOf<String?>(null)
+        private set
+
+    fun clearError() {
+        lastError = null
+    }
 
     var enabledPackId by mutableStateOf(prefs.getString(K_ENABLED, "").orEmpty())
         private set
@@ -45,11 +68,21 @@ class AppCore(private val ctx: Context) {
     // ---------- 进度 ----------
     private val progress = mutableStateMapOf<String, WordState>()
 
-    /** 识记进度：回到某单元时从上次的位置继续。key = "packId|unit" */
-    private val memorizePos = mutableStateMapOf<String, Int>()
+    /** 识记进度：回到某单元时从上次的位置继续。key = "packId|unit"。内存镜像，落盘一次 */
+    private val memorizePos = HashMap<String, Int>()
 
-    /** 单元列表滚动位置（记住上次翻到第几个单元）。key = packId */
-    private val unitScroll = mutableStateMapOf<String, Int>()
+    /** 温习卡片位置：跳去词条详情（点近义词/形近词）再回来时，从原来那张卡继续 */
+    private val reviewPos = HashMap<String, Int>()
+
+    /**
+     * 单元列表滚动位置（记住上次翻到第几个单元）。key = packId。
+     *
+     * 刻意**不是** Compose 快照状态：它是「进入页面时的初值」，读它的人不该因为
+     * 它变化而重组。早先用 mutableStateMapOf，滚动每过一行就写一次 → 读它的
+     * 整个单元列表页重组 → units()（一万多个词逐个查表）重算一遍 → 越滑越涩，
+     * 同时每行还写一次 SharedPreferences（整份配置重新编码）。
+     */
+    private val unitScroll = HashMap<String, Int>()
 
     /**
      * 词本详情页的搜索词。key = packId。
@@ -126,8 +159,35 @@ class AppCore(private val ctx: Context) {
         get() = packs.firstOrNull { it.manifest.packId == enabledPackId }
 
     // ================= 载入 =================
-    fun load() {
-        packs = repo.loadAll()
+
+    /**
+     * 载入词包与进度。**解析词包 JSON 放到后台线程** —— 词包 16 MB，
+     * 反射式反序列化在主线程要几百毫秒到几秒，低端机上冷启动会白屏甚至 ANR。
+     * 解析完把结果交回主线程套用，套用是纯赋值，很快。
+     */
+    fun loadAsync() {
+        if (busy) return
+        busy = true
+        Thread({
+            val loaded = runCatching { repo.loadAll() }
+                .onFailure { e -> main.post { lastError = "载入词包失败：${describe(e)}" } }
+                .getOrDefault(emptyList())
+            val failures = repo.lastFailures.toList()
+            main.post {
+                applyLoaded(loaded)
+                if (failures.isNotEmpty()) {
+                    lastError = "有 ${failures.size} 个词本读不出来，已跳过：" +
+                        failures.joinToString("、") { it.first }
+                }
+                busy = false
+                ready = true
+            }
+        }, "eword-load").start()
+    }
+
+    /** 载入完成后套用状态（只在主线程调用） */
+    private fun applyLoaded(loaded: List<WordPack>) {
+        packs = loaded
         orderCache.clear()
         idIndex.clear()
         progress.clear()
@@ -135,14 +195,17 @@ class AppCore(private val ctx: Context) {
             val type = object : TypeToken<Map<String, Int>>() {}.type
             val m: Map<String, Int>? = gson.fromJson(prefs.getString(K_PROGRESS, "{}"), type)
             m?.forEach { (k, v) -> progress[k] = WordState.entries.getOrElse(v) { WordState.NEW } }
+        }.onFailure { e ->
+            lastError = "学习进度读不出来，已从空白开始：${describe(e)}"
         }
-        // 恢复识记进度与单元列表滚动位置
+        // 恢复识记/温习进度与单元列表滚动位置
         runCatching {
             prefs.all.forEach { (k, v) ->
                 if (v !is Int) return@forEach
                 when {
                     k.startsWith("mpos_") -> memorizePos[k.removePrefix("mpos_")] = v
                     k.startsWith("uscr_") -> unitScroll[k.removePrefix("uscr_")] = v
+                    k.startsWith("rpos_") -> reviewPos[k.removePrefix("rpos_")] = v
                 }
             }
         }
@@ -160,6 +223,8 @@ class AppCore(private val ctx: Context) {
         }
     }
 
+    private fun describe(e: Throwable): String = e.message ?: e.javaClass.simpleName
+
     // ================= 词包 =================
     fun enablePack(id: String) {
         enabledPackId = id
@@ -167,20 +232,44 @@ class AppCore(private val ctx: Context) {
     }
 
     /**
-     * 导入词包。导入成功后**自动启用**，
+     * 导入词包（后台线程）。导入成功后**自动启用**，
      * 之后可以在「我的单词本」里点「停用」把它关掉。
+     *
+     * 导入要拷 66 MB、解包 106 MB 音频、再把词包整个解析一遍，全程几十秒。
+     * 放在主线程界面会假死且没有任何提示，用户会以为死机去强杀，
+     * 而强杀正好留下「有词表、没音频」的半成品词包。
      */
-    fun importPack(uri: Uri): Result<String> =
-        repo.import(uri).onSuccess { id ->
-            load()
-            enablePack(id)
-        }
+    fun importPackAsync(uri: Uri, onDone: (Result<String>) -> Unit) {
+        if (busy) return
+        busy = true
+        Thread({
+            val r = repo.import(uri)
+            val loaded = runCatching { repo.loadAll() }.getOrDefault(emptyList())
+            main.post {
+                applyLoaded(loaded)
+                r.onSuccess { enablePack(it) }
+                    .onFailure { e -> lastError = "导入失败：${describe(e)}" }
+                busy = false
+                onDone(r)
+            }
+        }, "eword-import").start()
+    }
 
-    fun deletePack(packId: String): Result<Unit> =
-        repo.delete(packId).onSuccess {
-            if (enabledPackId == packId) enablePack("")
-            load()
-        }
+    /** 删除词包（后台线程，删完要重新载入） */
+    fun deletePackAsync(packId: String, onDone: (Result<Unit>) -> Unit) {
+        if (busy) return
+        busy = true
+        Thread({
+            val r = repo.delete(packId)
+            val loaded = runCatching { repo.loadAll() }.getOrDefault(emptyList())
+            main.post {
+                applyLoaded(loaded)
+                if (enabledPackId == packId) enablePack("")
+                busy = false
+                onDone(r)
+            }
+        }, "eword-delete").start()
+    }
 
     // ================= 设置 =================
     fun updateUnitSize(n: Int) {
@@ -303,8 +392,21 @@ class AppCore(private val ctx: Context) {
         persistProgress()
     }
 
-    fun countOf(packId: String, state: WordState): Int =
-        progress.count { it.key.startsWith("$packId|") && it.value == state }
+    /**
+     * 处于某状态的词数。
+     *
+     * 只数**当前词包里还有的**词：词包换新版本时可能删掉过词条，而进度是按
+     * 「词包id|词条id」保留的，那些孤儿进度会让「已彻底记住 10 词」和列表里
+     * 数出来的 9 条对不上。
+     */
+    fun countOf(packId: String, state: WordState): Int {
+        val pack = packs.firstOrNull { it.manifest.packId == packId } ?: return 0
+        val vocab = vocabIds(pack)
+        val prefix = "$packId|"
+        return progress.count { (k, v) ->
+            v == state && k.startsWith(prefix) && k.removePrefix(prefix) in vocab
+        }
+    }
 
     /**
      * 进度落盘：**必须串行**。
@@ -322,8 +424,9 @@ class AppCore(private val ctx: Context) {
         runCatching {
             persistExec.execute {
                 runCatching { prefs.edit { putString(K_PROGRESS, json) } }
+                    .onFailure { e -> main.post { lastError = "学习进度没能保存：${describe(e)}" } }
             }
-        }
+        }.onFailure { e -> lastError = "学习进度没能排队保存：${describe(e)}" }
     }
 
     fun resetPack(packId: String) {
@@ -339,6 +442,7 @@ class AppCore(private val ctx: Context) {
     // ================= 识记进度 =================
     fun memorizeIndexOf(packId: String, unit: Int): Int = memorizePos["$packId|$unit"] ?: 0
 
+    /** 只改内存 + 落盘一次。识记页每换一张卡调用一次，没必要为它重组整页 */
     fun setMemorizeIndex(packId: String, unit: Int, idx: Int) {
         memorizePos["$packId|$unit"] = idx
         prefs.edit { putInt("mpos_$packId|$unit", idx) }
@@ -361,12 +465,42 @@ class AppCore(private val ctx: Context) {
         }
     }
 
+    // ================= 温习进度 =================
+    //
+    // 温习页原来没有位置记忆：点一张卡上的近义词跳去词条详情，返回时 remember 里的
+    // 下标已经随页面销毁而清零，人又回到本单元第 1 张卡。近义词覆盖扩到六千多个词之后
+    // 这个动作会经常发生，所以按识记页的做法把位置存起来。
+
+    private fun rk(packId: String, unit: Int, stage: Int) = "$packId|$unit|$stage"
+
+    fun reviewIndexOf(packId: String, unit: Int, stage: Int): Int =
+        reviewPos[rk(packId, unit, stage)] ?: 0
+
+    /** 只改内存；离开温习页时由 [flushReviewIndex] 落盘一次 */
+    fun setReviewIndex(packId: String, unit: Int, stage: Int, idx: Int) {
+        reviewPos[rk(packId, unit, stage)] = idx
+    }
+
+    fun flushReviewIndex(packId: String, unit: Int, stage: Int) {
+        prefs.edit { putInt("rpos_${rk(packId, unit, stage)}", reviewIndexOf(packId, unit, stage)) }
+    }
+
+    fun clearReviewIndex(packId: String, unit: Int, stage: Int) {
+        reviewPos.remove(rk(packId, unit, stage))
+        prefs.edit { remove("rpos_${rk(packId, unit, stage)}") }
+    }
+
     // ================= 单元列表滚动位置 =================
     fun unitScrollIndexOf(packId: String): Int = unitScroll[packId] ?: 0
 
+    /** 只改内存（滚动时每过一行调一次），落盘留给离开页面时的 [flushUnitScroll] */
     fun setUnitScrollIndex(packId: String, index: Int) {
         unitScroll[packId] = index
-        prefs.edit { putInt("uscr_$packId", index) }
+    }
+
+    /** 离开单元列表时落盘一次 */
+    fun flushUnitScroll(packId: String) {
+        prefs.edit { putInt("uscr_$packId", unitScroll[packId] ?: 0) }
     }
 
     companion object {
