@@ -6,7 +6,14 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-// 发布签名口令放在 local.properties（不入库），与同级 Snote 工程保持一致的做法
+// 编译与运行都按 Java 17 走，并显式声明工具链：
+// 只写 jvmTarget = "17" 的话，实际用的是哪个 JDK 取决于跑 Gradle 的那个，
+// 换台机器（daemon 是 JDK 21 之类）就会出现工具链与目标版本对不上。
+kotlin {
+    jvmToolchain(17)
+}
+
+// 发布签名口令放在 local.properties（不入库）
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
@@ -19,9 +26,9 @@ android {
 
     defaultConfig {
         applicationId = "com.eword.app"
-        // 与同级 Snote 保持一致：数据落公共目录需要 API 30+
+        // 音频需要以文件描述符直接播放，minSdk 30 起这条路子稳定
         minSdk = 30
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 6
         versionName = "4.0.0"
     }
@@ -52,10 +59,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -66,7 +69,7 @@ android {
         noCompress += listOf("mp3", "ewp")
     }
 
-    // 产物命名与同级 Snote 保持一致，便于直接分发
+    // 产物命名固定，便于直接分发
     applicationVariants.all {
         outputs.all {
             val output = this as com.android.build.gradle.internal.api.ApkVariantOutputImpl
@@ -87,9 +90,6 @@ dependencies {
 
     // ========== Android 核心库 ==========
     implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("androidx.core:core-ktx:1.15.0")
 
     // ========== JSON ==========

@@ -1,5 +1,4 @@
-// Eword 根项目构建脚本
-// 版本与同级 Snote 工程保持一致，避免依赖重新下载
+// Eword 根项目构建脚本：只声明插件版本，具体配置见 app/build.gradle.kts
 
 plugins {
     // Android 应用插件

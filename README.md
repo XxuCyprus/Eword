@@ -100,7 +100,7 @@ Eword/
 │       │       └── SettingsScreen.kt 设置
 │       └── res/                      图标、主题、字符串
 ├── assets/                           仓库配图（当前为空，见其中说明）
-├── .github/                          Issue 模板与赞助配置
+├── .github/ISSUE_TEMPLATE/           Issue 模板
 ├── gradle/                           Gradle Wrapper
 ├── build.gradle.kts                  根构建脚本：插件版本
 ├── settings.gradle.kts               模块声明与依赖仓库
