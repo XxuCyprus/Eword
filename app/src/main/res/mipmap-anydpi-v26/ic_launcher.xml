@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    自适应图标（API 26+）。
+
+    图案本身就是一整枚图标（奶油底 + 圆角方形白板 + 叠放的卡片与蓝色 E），
+    已经按「108dp 画布、内容收在中间 72dp 安全区」合成好，所以整块放进**背景层**，
+    前景层留空 —— 这样任何遮罩形状（圆形／方形／水滴）都不会把图案切掉，
+    也不必给图案抠透明通道。
+
+    单色层（Android 13+ 主题图标）用一枚 E 的剪影：主题图标只取形状，
+    颜色由系统按壁纸调色板生成。
+-->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background" />
-    <foreground android:drawable="@drawable/ic_launcher_foreground" />
-    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@android:color/transparent" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
 </adaptive-icon>

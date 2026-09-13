@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    单色层（Android 13+ 主题图标用的剪影）。
+
+    只画形状、不要颜色：系统会按壁纸调色板给这块形状上色，
+    所以这里只有一枚 E 的路径，颜色写白只是为了看着直观。
+
+    画布 108×108 是规范尺寸，系统只显示中间约 72×72，
+    所以 E 收在中心区域里（x 40–68、y 38–66）。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,38h28v7h-20v7h18v7h-18v7h20v7h-28z" />
+</vector>
