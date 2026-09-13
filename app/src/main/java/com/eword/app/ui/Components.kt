@@ -427,12 +427,16 @@ fun SenseList(senses: List<Sense>) {
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
                 }
+                // 同组内、词性相同的义项合成一行，共用一个词性标记。
+                // 词典补充常有两三条同词性的义项（alert 补了「警告 / 使警觉 / 通知」
+                // 三个动词义），一条一行就会连着挂三个一样的 v.，看着像重复条目。
+                // 合并后与真题义项本来的写法一致 ——「平均，平均数，平均水平」也是一行。
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items.forEach { s ->
+                    items.groupBy { it.pos }.forEach { (pos, samePos) ->
                         Row(verticalAlignment = Alignment.Top) {
-                            if (s.pos.isNotBlank()) {
+                            if (pos.isNotBlank()) {
                                 Text(
-                                    s.pos,
+                                    pos,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.primary,
@@ -444,7 +448,7 @@ fun SenseList(senses: List<Sense>) {
                                 Spacer(Modifier.width(8.dp))
                             }
                             Text(
-                                s.meaning.ifBlank { "—" },
+                                samePos.joinToString("，") { it.meaning.ifBlank { "—" } },
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface,

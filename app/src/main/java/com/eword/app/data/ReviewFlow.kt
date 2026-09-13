@@ -14,13 +14,18 @@ package com.eword.app.data
  * 定下来的规则：
  *
  *   判定按钮 —— **点过「显示完整答案（核对用）」或「显示例句意思」之后才亮**。
- *               例句翻到底不算；只有本身没有例句的词例外（否则永远点不动）。
+ *               例句翻到底不算。
  *
  *   自动定案 —— 只有「逐条展示例句翻到底，最后点的是显示例句意思」这条路径
  *               才自动判「没记住」并锁死按钮：那是靠提示才想起来的。
  *               点「显示完整答案（核对用）」无论何时点，都只是核对，看完由用户自己选。
  *
  * 所以「例句翻到底」与「看过答案」必须分开记 —— 前者是事实，后者是用户的选择。
+ *
+ * 还有一个坑是第三个：曾经给「本身没有例句的词」开了例外 —— 判定按钮直接放行，
+ * 理由是那种词没有例句可翻。可温习页当时把「显示完整答案」按钮也跟「有例句」
+ * 绑在一起，于是这类词既翻不了例句、也展不开释义，用户只能对着光秃秃的卡片猜。
+ * 现在「显示完整答案」任何词都显示，判定规则也就没有例外的必要了。
  */
 object ReviewFlow {
 
@@ -32,11 +37,10 @@ object ReviewFlow {
      * 判定按钮是否可用。
      *
      * [revealedFull] = 已点过「显示完整答案（核对用）」或「显示例句意思」。
-     * 注意 [revealed] / [exampleCount] 只用来判断「没有例句的词」这一例外 ——
-     * 例句翻到底**不**解锁按钮。
+     * 例句翻到底**不**解锁按钮；没有例句的词也**不**例外 —— 释义是唯一的判断依据，
+     * 而「显示完整答案」按钮现在任何词都有。
      */
-    fun canJudge(exampleCount: Int, revealedFull: Boolean): Boolean =
-        exampleCount == 0 || revealedFull
+    fun canJudge(revealedFull: Boolean): Boolean = revealedFull
 
     /**
      * 是否已由「例句翻到底之后再点显示例句意思」定案为「没记住」。
@@ -57,7 +61,7 @@ object ReviewFlow {
     //   翻到底（释义未露）              → 灰
     //   翻到底 → 显示完整答案           → 可点，自己选
     //   翻到底 → 显示例句意思           → 自动没记住，锁死
-    //   没有例句的词                    → 可点
+    //   没有例句的词（看过释义后）      → 可点
 
     private fun check(cond: Boolean, msg: String) {
         if (!cond) throw IllegalStateException("温习判定规则被改坏：$msg")
@@ -65,26 +69,24 @@ object ReviewFlow {
 
     fun selfCheck(): Boolean {
         // 什么都没点：灰
-        check(!canJudge(5, false), "没点过任何『看答案』按钮时不应可判")
-        check(!canJudge(1, false), "只有一条例句、没看过释义时不应可判")
+        check(!canJudge(false), "没点过任何『看答案』按钮时不应可判")
 
         // 例句没翻完就点显示完整答案：可判，且不算没记住
-        check(canJudge(5, true), "点过显示完整答案后应当可判")
+        check(canJudge(true), "点过显示完整答案后应当可判")
         check(!autoForgetful(false), "显示完整答案不等于靠提示，不应自动判没记住")
 
         // 例句翻到底但释义还没露：仍然灰
         check(examplesExhausted(5, 5), "5 条翻完应当算翻到底")
-        check(!canJudge(5, false), "例句翻到底但没看释义时不应可判")
+        check(!canJudge(false), "例句翻到底但没看释义时不应可判")
 
         // 翻到底之后再点显示完整答案：可判，且不算没记住
-        check(canJudge(5, true), "翻完例句后点显示完整答案应当可判")
+        check(canJudge(true), "翻完例句后点显示完整答案应当可判")
         check(!autoForgetful(false), "翻完例句后看完整答案不应自动判没记住")
 
         // 翻到底之后再点显示例句意思：自动没记住
         check(autoForgetful(true), "靠例句提示才想起来，应当自动判没记住")
 
-        // 没有例句的词：直接可判，否则按钮永远点不动
-        check(canJudge(0, false), "没有例句的词应当可直接判定")
+        // 没有例句的词：也必须先看过释义 —— 释义是唯一的判断依据
         check(!examplesExhausted(0, 0), "没有例句不应算翻到底")
 
         check(!examplesExhausted(5, 4), "5 条只翻 4 条不应算翻到底")

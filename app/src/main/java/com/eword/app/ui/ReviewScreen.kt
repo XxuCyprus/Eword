@@ -217,7 +217,7 @@ fun ReviewScreen(core: AppCore, unit: Int, stage: Int, push: (Screen) -> Unit, p
 
         // 判定规则见 data/ReviewFlow.kt —— 那里写清了每条分支为什么这么判，
         // 并附一份自检覆盖所有状态组合。这里只做取值与调用。
-        val canJudge = ReviewFlow.canJudge(w.examples.size, showMeaning)
+        val canJudge = ReviewFlow.canJudge(showMeaning)
         val autoForgetful = ReviewFlow.autoForgetful(byHints)
 
         Column(
@@ -284,13 +284,20 @@ fun ReviewScreen(core: AppCore, unit: Int, stage: Int, push: (Screen) -> Unit, p
             // 核对完仍由用户在「记住了 / 没记住」里自己选。
             // 例句翻到底之后也是走这里：翻完例句只是确认有没有记错，不是认输。
             //
-            // 它**不能**跟着「显示例句」这个显示项一起藏起来：判定按钮要看过释义才亮，
-            // 而这里是看过释义的唯一入口。绑在一起的后果是——关掉「显示例句」的人
-            // 在温习里点不动任何判定按钮，整条流程卡死在这一张卡上。
-            if (!showMeaning && w.examples.isNotEmpty()) {
-                // 上面若没渲染例句提示区（用户关掉了「显示例句」），这里要多留一段间距，
-                // 否则按钮会紧贴在音标下面。
-                Spacer(Modifier.height(if (core.showExamples) 10.dp else 28.dp))
+            // 两道「不能藏」的约束，都是踩过坑之后加的：
+            //   ① 不能跟着「显示例句」这个显示项一起藏 —— 判定按钮要看过释义才亮，
+            //      而这里是看过释义的唯一入口。绑在一起的后果是关掉「显示例句」的人
+            //      在温习里点不动任何判定按钮，整条流程卡死在这一张卡上。
+            //   ② 不能跟着「有没有例句」一起藏 —— 全库有一百多个词在真题里
+            //      只出现在词库或选项里、查不到完整句子（monk 就是一个）。这类词
+            //      例句区本来就空着，若连这个按钮也一起没了，用户就只能对着一张
+            //      光秃秃的卡片猜自己记没记住，判断失去依据。
+            if (!showMeaning) {
+                // 上面若没渲染例句提示区（关掉「显示例句」，或这个词没有例句），
+                // 这里要多留一段间距，否则按钮会紧贴在音标下面。
+                Spacer(Modifier.height(
+                    if (core.showExamples && w.examples.isNotEmpty()) 10.dp else 28.dp
+                ))
                 Button(
                     onClick = { core.setRevealFull(packId, w.id, true) },
                     shape = cardShape()
@@ -404,16 +411,10 @@ fun ReviewScreen(core: AppCore, unit: Int, stage: Int, push: (Screen) -> Unit, p
                         (if (stage == 2) "最终页面" else "温习二"),
                     fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            } else if (w.examples.isEmpty()) {
-                // 这个词在真题里没有可用的例句/译文，无从核对，直接判定
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    "本词在真题里没有可用例句，直接判断是否记住即可",
-                    fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             } else if (!canJudge) {
                 // 还没看过答案：两个判定按钮都是灰的，这里说清为什么。
                 // 例句翻到头也一样 —— 没点过「显示例句意思」或「显示完整答案」就不算看过释义。
+                // 没有例句的词同样走这里：它只有一个「显示完整答案」可点，但必须先点。
                 Spacer(Modifier.height(6.dp))
                 Text(
                     "请先点上方按钮看过释义，再判断是否记住",
