@@ -65,16 +65,14 @@
 
 ## 安装
 
-1. 前往 [Releases](https://github.com/XxuCyprus/Eword/releases) 下载应用安装包
+1. 前往 [Releases](https://github.com/XxuCyprus/Eword/releases/latest) 下载 `Eword-v4.1.0.apk`
 2. 安装应用（首次安装需在系统设置中允许安装未知来源应用）
-3. 在 [词包发布页](https://github.com/XxuCyprus/Eword/releases?q=Pack) 下载最新的
-   `Eword-CET46-Pack-v*.ewp`
+3. 在**同一页面**下载词包 `Eword-CET46-Pack-v12.ewp`
 4. 打开 Eword → **我的单词本** → **导入单词本** → 选择刚下载的 `.ewp`，等待导入完成
 
 > 需要 Android 11 及以上。词包必须单独下载并导入，应用内不含词库数据。
 > 应用与词包**分别更新**：换新版词包不必重装应用，已装词包的版本号在
-> 「我的单词本」和设置里都能看到。两个 Release 的标签前缀分别是 `app-` 与 `pack-`，
-> 一眼可分。
+> 「我的单词本」和设置里都能看到。
 
 ---
 
@@ -108,7 +106,6 @@ Eword/
 │       └── res/                      图标、主题、字符串
 ├── assets/                           仓库配图（当前为空，见其中说明）
 ├── .github/ISSUE_TEMPLATE/           Issue 模板
-├── CHANGELOG.md                      更新日志：应用与词包各自独立记
 ├── gradle/                           Gradle Wrapper
 ├── build.gradle.kts                  根构建脚本：插件版本
 ├── settings.gradle.kts               模块声明与依赖仓库

@@ -34,7 +34,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.eword.app.BuildConfig
 import com.eword.app.data.AppCore
+import com.eword.app.data.PackCompat
 
 /** 我的单词本功能区 */
 @Composable
@@ -51,6 +53,13 @@ fun WordbookScreen(core: AppCore, push: (Screen) -> Unit, pop: () -> Unit) {
         }
     }
 
+    // 版本比较是个纯函数，这里跑一遍自检：改坏了当场报错，
+    // 不必等用户导入新包、发现界面上少了一块却查不出原因。
+    remember { PackCompat.selfCheck() }
+
+    // 词包声明的最低应用版本高于本机时，导入了也用不明白，先在列表上方讲清楚
+    val incompatible = core.packs.filter { !it.manifest.compatibleWith(BuildConfig.VERSION_NAME) }
+
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         EwordTopBar("我的单词本", onBack = pop, subtitle = "可导入多个，同时只能启用一个")
 
@@ -63,6 +72,17 @@ fun WordbookScreen(core: AppCore, push: (Screen) -> Unit, pop: () -> Unit) {
             msg?.let {
                 Spacer(Modifier.height(8.dp))
                 Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            if (incompatible.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    incompatible.joinToString("\n") {
+                        "「${it.manifest.name} ${it.manifest.versionLabel}」需要应用 " +
+                            "v${it.manifest.minAppVersion} 及以上，当前为 v${BuildConfig.VERSION_NAME}"
+                    },
+                    fontSize = 12.sp, color = MaterialTheme.colorScheme.error, lineHeight = 18.sp
+                )
             }
         }
 

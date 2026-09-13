@@ -124,7 +124,15 @@ data class PackManifest(
     @SerializedName("name") val name: String = "",
     @SerializedName("version") val version: Int = 1,
     @SerializedName("coverage") val coverage: String = "",
-    @SerializedName("wordCount") val wordCount: Int = 0
+    @SerializedName("wordCount") val wordCount: Int = 0,
+    /**
+     * 该词包要求的最低应用版本，如 "4.1.0"。留空表示不限。
+     *
+     * 应用与词包各自独立发版，就必然出现「新包配旧应用」的组合。
+     * 由词包声明要求、应用自己比对，才能在导入前给出提示，
+     * 而不是等用户发现界面上少了一块却不知道原因。
+     */
+    @SerializedName("minAppVersion") val minAppVersion: String = ""
 ) {
     /**
      * 词包版本号。
@@ -133,6 +141,10 @@ data class PackManifest(
      * 否则「你更新词包了吗」会变成一笔糊涂账：App 内看不到手上的包是第几版。
      */
     val versionLabel: String get() = "v$version"
+
+    /** 本机应用版本是否满足这个词包的要求 */
+    fun compatibleWith(appVersion: String?): Boolean =
+        PackCompat.satisfied(appVersion, minAppVersion)
 }
 
 /** 一个完整词包 */
