@@ -1,0 +1,32 @@
+# Gradle
+.gradle/
+build/
+*.apk
+*.aab
+*.aar
+
+# Kotlin
+.kotlin/
+
+# 本机 SDK 路径与签名口令（含私密信息，绝不入库）
+local.properties
+
+# 签名密钥
+*.jks
+*.keystore
+
+# IDE
+.idea/
+*.iml
+
+# Android
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 词包构建脚本与数据源
+/tools/
