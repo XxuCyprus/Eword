@@ -414,6 +414,76 @@ fun WordHead(
  *
  * 分组时保持词包里的原始顺序：先出现的类别先列出，不重排义项。
  */
+/** 一行义项：词性小标 + 释义。带支撑与不带支撑的行共用它，样式才一致。 */
+@Composable
+private fun SenseMeaningRow(pos: String, meaning: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        if (pos.isNotBlank()) {
+            Text(
+                pos,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clip(chipShape())
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(
+            meaning,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            lineHeight = 24.sp,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+/**
+ * 义项下面的真题依据：原句 + 官方译文 + 出处。
+ *
+ * 只用**同一套卷子**里的原句与官方译文（词包 v21 的 support_kind 标了来源），
+ * 所以用户看到的两行是能对上的——不会出现「英文一句、中文是隔壁那句译文」。
+ * 只有原句没有译文时（support_kind=题干，多为写作题指令与选项行）只显示原句。
+ */
+@Composable
+private fun SenseSupport(s: Sense) {
+    Column(
+        modifier = Modifier
+            .padding(start = 2.dp, top = 6.dp)
+            .clip(chipShape())
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+    ) {
+        Text(
+            s.supportEn,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            lineHeight = 19.sp
+        )
+        if (s.supportZh.isNotBlank()) {
+            Spacer(Modifier.height(3.dp))
+            Text(
+                s.supportZh,
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 19.sp
+            )
+        }
+        if (s.sourceLabel.isNotBlank()) {
+            Spacer(Modifier.height(5.dp))
+            Text(
+                s.sourceLabel,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+            )
+        }
+    }
+}
+
 @Composable
 fun SenseList(senses: List<Sense>) {
     if (senses.isEmpty()) return
@@ -432,34 +502,21 @@ fun SenseList(senses: List<Sense>) {
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
                 }
-                // 同组内、词性相同的义项合成一行，共用一个词性标记。
-                // 词典补充常有两三条同词性的义项（alert 补了「警告 / 使警觉 / 通知」
-                // 三个动词义），一条一行就会连着挂三个一样的 v.，看着像重复条目。
-                // 合并后与真题义项本来的写法一致 ——「平均，平均数，平均水平」也是一行。
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    items.groupBy { it.pos }.forEach { (pos, samePos) ->
-                        Row(verticalAlignment = Alignment.Top) {
-                            if (pos.isNotBlank()) {
-                                Text(
-                                    pos,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier
-                                        .clip(chipShape())
-                                        .background(MaterialTheme.colorScheme.primaryContainer)
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                            }
-                            Text(
-                                samePos.joinToString("，") { it.meaning.ifBlank { "—" } },
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                lineHeight = 24.sp,
-                                modifier = Modifier.weight(1f)
-                            )
+                // 带真题支撑句的义项**单独成行**，下面挂原句 + 官方译文 + 出处。
+                // 用户的原话是「这个单词的意思，必须有近10年来真题里出现过的所有意思，
+                // 不是通过什么某本词典查到的意思」——把原句摆出来，他才能自己核对，
+                // 而不是只能信我们。没支撑的义项仍按词性合并成一行（老写法）。
+                val (evidenced, plain) = items.partition { it.hasSupport }
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    evidenced.forEach { s ->
+                        Column {
+                            SenseMeaningRow(s.pos, s.meaning)
+                            SenseSupport(s)
+                        }
+                    }
+                    if (plain.isNotEmpty()) {
+                        plain.groupBy { it.pos }.forEach { (pos, samePos) ->
+                            SenseMeaningRow(pos, samePos.joinToString("，") { it.meaning.ifBlank { "—" } })
                         }
                     }
                 }
