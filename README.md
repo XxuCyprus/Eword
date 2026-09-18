@@ -83,11 +83,11 @@ Eword 是一款完全离线的 Android 背单词应用，词库取四六级历�
 ## 安装
 
 1. 在[最新版 Release](https://github.com/XxuCyprus/Eword/releases/latest) 下载 `Eword-v4.3.2.apk` 并安装（首次安装需在系统设置中允许安装未知来源应用）。
-2. 打开[全部 Releases](https://github.com/XxuCyprus/Eword/releases)，找到词包那一版（标题形如 `Eword CET4-6 Pack v23`），下载 `Eword-CET4-6-Pack-v23.ewp`。词包与应用的 Release 分开列出，因此词包不在「最新版」页面上，需要到列表里找。
+2. 打开[全部 Releases](https://github.com/XxuCyprus/Eword/releases)，找到词包那一版（标题形如 `Eword CET4-6 Pack v24`），下载 `Eword-CET4-6-Pack-v24.ewp`。词包与应用的 Release 分开列出，因此词包不在「最新版」页面上，需要到列表里找。
 3. 打开 Eword →「我的单词本」→「导入单词本」→ 选择刚下载的 `.ewp`，等待导入完成。
 
 > 需要 **Android 11（API 30）及以上**。词包必须单独下载导入，应用内不含词条数据。
-> 词包 v23 需要**应用 4.3.2 及以上**（v23 与 4.3.2 配套发布；例句出处行那半个位置标记要新版才显示）；
+> 词包 v24 需要**应用 4.3.2 及以上**（v23 与 4.3.2 配套发布；例句出处行那半个位置标记要新版才显示）；
 > 应用版本偏低时，导入界面会提示先升级应用，不会装上一个与界面版本对不上的词包。
 
 ---
