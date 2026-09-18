@@ -29,8 +29,8 @@ android {
         // 音频需要以文件描述符直接播放，minSdk 30 起这条路子稳定
         minSdk = 30
         targetSdk = 35
-        versionCode = 16
-        versionName = "4.3.1"
+        versionCode = 17
+        versionName = "4.3.2"
     }
 
     signingConfigs {

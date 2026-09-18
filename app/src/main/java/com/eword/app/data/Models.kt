@@ -9,8 +9,24 @@ data class Example(
     /** 出处，如「2023.6 第1套」 */
     @SerializedName("source") val source: String = "",
     /** 该例句所属级别：CET4 / CET6 */
-    @SerializedName("level") val level: String = ""
-)
+    @SerializedName("level") val level: String = "",
+    /**
+     * 这句话在卷面里的位置（词包 v23 试点批起逐条带；还没标到的词为空）：
+     *   "卷面" —— 纸面印着的题面与阅读正文（用户拿纸质卷子能逐字核到）
+     *   "听力" —— 听力原文里的句子。那份 PDF 自己写着「录音原声不在纸面」，
+     *             用户按纸质卷面核不到，所以必须标出来，不能让它冒充卷面正文
+     *   "完形" —— 卷面是挖空 `[NN]`、按官方答案把词填回去的句子
+     */
+    @SerializedName("part") val part: String = ""
+) {
+    /** 出处行的后缀：只有非卷面的才标，卷面正文不额外标（默认就是卷面）。 */
+    val partLabel: String
+        get() = when (part) {
+            "听力" -> "听力原文"
+            "完形" -> "完形回填"
+            else -> ""
+        }
+}
 
 /**
  * 一个词性 + 该词性下的意思，一一对应。

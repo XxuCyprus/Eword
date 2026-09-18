@@ -718,8 +718,12 @@ fun ExampleList(
                             LevelBadge(e.level)
                             Spacer(Modifier.width(6.dp))
                         }
+                        // 出处行：级别徽章 + —— 2019.12 第3套（+ · 听力原文／· 完形回填）。
+                        // 后半个标记是给用户核对用的：听力原文不在纸质卷面上，不标出来
+                        // 用户按卷面查不到，会以为例句是编的（2026-09-18 用户报 insight）。
                         Text(
-                            "—— ${e.source}",
+                            "—— ${e.source}" +
+                                (if (e.partLabel.isNotBlank()) " · ${e.partLabel}" else ""),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
