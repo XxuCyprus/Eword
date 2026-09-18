@@ -787,13 +787,19 @@ fun WordFullBody(
         ExampleList(w.examples, showTranslation = true, highlight = w.word,
                     known = known, suffix = suffix)
     } else if (core.showExamples && w.freq > 0) {
-        // 徽章上有句数、下面却没有例句：这些词在卷面只出现在题干或选项里。
+        // 徽章上有句数、下面却没有例句：这类词在卷面出现的那句，卷面没有配官方译文。
         // 说清楚，比让用户以为例句丢了强。判据见 FreqBadge 的注释。
+        //
+        // 早先这里写的是「只出现在题干或选项里」—— 不准确：选词填空被挖空的正文句
+        // （`Those that believed they fell claimed that the capitalists [26] …`）
+        // 一样收不成例句，`chimney` 这类只出现在选项行也算。所以只说「卷面没配译文」，
+        // 把题干、选项、挖空句三种情形一并覆盖，不去断言是哪一种。
         Spacer(Modifier.height(20.dp))
         SectionLabel("例句")
         Text(
-            "这个词在真题里只出现在题干或选项里。卷面不给题干与选项配译文，" +
-                "没有可对照的译文就收不成例句 —— 所以上面有句数、这里没有例句。",
+            "这个词在卷面里出现的那句，卷面没有配官方译文（多为题干行、选项行，" +
+                "或选词填空里被挖空的句子）。没有可对照的译文就收不成例句 —— " +
+                "所以上面有句数、这里没有例句。",
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             lineHeight = 18.sp
